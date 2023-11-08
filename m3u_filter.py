@@ -2,25 +2,29 @@ from datetime import date
 import re
 
 input_file = "input.m3u"
-filters = [",AT |", ",DE |"]
+include_adult = False
+
+patterns = [",AT |", ",DE |"]
+adult_pattern = ",XXX |"
+
+def process_pattern_name(pattern_name):
+    return re.sub(r"[^a-zA-Z]", "", pattern_name)
 
 
-def process_filter_name(filter_name):
-    return re.sub(r"[^a-zA-Z]", "", filter_name)
+def get_pattern_names(patterns):
+    pattern_names = []
+    for pattern_name in patterns:
+        pattern_names.append(process_pattern_name(pattern_name))
+    return "_".join(pattern_names)
 
 
-def get_filter_names(filters):
-    filter_names = []
-    for filter_name in filters:
-        filter_names.append(process_filter_name(filter_name))
-    return "_".join(filter_names)
+def create_file_name(patterns):
+    return date.today().strftime("%Y-%m-%d") + "_" + get_pattern_names(patterns) + ".m3u"
 
 
-def create_file_name(filters):
-    return date.today().strftime("%Y-%m-%d") + "_" + get_filter_names(filters) + ".m3u"
-
-
-def filter_m3u(input_file, output_file, patterns):
+def filter_m3u(input_file, output_file, patterns: list):
+    if include_adult:
+        patterns.append(adult_pattern)
     with open(input_file, "r") as infile, open(output_file, "w") as outfile:
         lines = infile.readlines()
         keep_next_line = False
@@ -37,4 +41,6 @@ def filter_m3u(input_file, output_file, patterns):
                 keep_next_line = False
 
 
-filter_m3u("./" + input_file, create_file_name(filters), filters)
+filter_m3u("./" + input_file, create_file_name(patterns), patterns)
+
+# edit the script so it prepares two output lists, one with XXX and one without
