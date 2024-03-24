@@ -1,12 +1,18 @@
 import re
 
+filter_location = True
+filter_quality = False
+rename_channels = False
+filter_exclude = True
+sort_channels = True
+
 input_file = "input.m3u"
 output_file = "output.m3u"
 
-include_patterns = ["DE: "]
+location_patterns = ["DE: ", "AT: "]
 exclude_patterns = ["OSOKOYO", "VIP-DE", "XXX"]
 quality_patterns = [" 4K", " FHD", " HD", " HEVC", " SD"]
-rename_patterns = include_patterns + quality_patterns
+rename_patterns = location_patterns  # + quality_patterns
 
 
 # maybe need to edit the get_tvg_name function to match your m3u file;
@@ -61,32 +67,37 @@ def filter_m3u(
 ):
     with open(input_file, "r") as infile, open(output_file, "w") as outfile:
         lines = infile.readlines()
-
         outfile.write("#EXTM3U\n")
 
         line_pairs = [(lines[i], lines[i + 1]) for i in range(1, len(lines), 2)]
 
-        # filtered_pairs = filter_by_quality(line_pairs, quality_patterns)
-        filtered_pairs = line_pairs
+        if filter_location:
+            line_pairs = [
+                pair
+                for pair in line_pairs
+                if any(pattern in pair[0] for pattern in inc_patterns)
+            ]
 
-        filtered_pairs = [
-            pair
-            for pair in filtered_pairs
-            if any(pattern in pair[0] for pattern in inc_patterns)
-        ]
-        filtered_pairs = [
-            pair
-            for pair in filtered_pairs
-            if not any(pattern in pair[0] for pattern in exc_patterns)
-        ]
+        if filter_quality:
+            line_pairs = filter_by_quality(line_pairs, quality_patterns)
 
-        renamed_pairs = [
-            (rename_channel(pair[0], rename_patterns), pair[1])
-            for pair in filtered_pairs
-        ]
+        if filter_exclude:
+            line_pairs = [
+                pair
+                for pair in line_pairs
+                if not any(pattern in pair[0] for pattern in exc_patterns)
+            ]
 
-        sorted_pairs = sorted(renamed_pairs, key=lambda pair: get_tvg_name(pair[0]))
-        for pair in sorted_pairs:
+        if rename_channels:
+            line_pairs = [
+                (rename_channel(pair[0], rename_patterns), pair[1])
+                for pair in line_pairs
+            ]
+
+        if sort_channels:
+            line_pairs = sorted(line_pairs, key=lambda pair: get_tvg_name(pair[0]))
+
+        for pair in line_pairs:
             for line in pair:
                 outfile.write(line)
 
@@ -94,8 +105,8 @@ def filter_m3u(
 filter_m3u(
     "./" + input_file,
     output_file,
-    include_patterns,
+    location_patterns,
     exclude_patterns,
     quality_patterns,
-    include_patterns,  # replace by rename_patterns if you want to rename the channels
+    rename_patterns,
 )
