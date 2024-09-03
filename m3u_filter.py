@@ -9,8 +9,22 @@ sort_channels = True
 input_file = "input.m3u"
 output_file = "output.m3u"
 
-location_patterns = ["DE: ", "AT: "]
-exclude_patterns = ["OSOKOYO", "VIP-DE", "XXX"]
+location_patterns = ["DE: "]
+exclude_patterns = [
+    "OSOKOYO",
+    "VIP-DE",
+    "XXX",
+    "POPCORN",
+    "GUTE",
+    "KINDER",
+    "KONIG",
+    "Eagle",
+    "BOX",
+    "BESONDERE",
+    "STERN",
+    "Redbox",
+    "4K",
+]
 quality_patterns = [" 4K", " FHD", " HD", " HEVC", " SD"]
 rename_patterns = location_patterns  # + quality_patterns
 
@@ -21,14 +35,15 @@ def get_tvg_name(line: str):
     return line.split('tvg-name="')[1].split('"')[0]
 
 
+# Removes patterns from a line
 def rename_channel(line: str, patterns: list):
     for pattern in patterns:
         line = line.replace(pattern, "")
     return line
 
 
+# Extracts the quality from a line using regular expressions
 def get_quality(line):
-    # Extracts the quality from a line using regular expressions
     match = re.search(r"\b(4K|FHD|HD|HEVC|SD)\b", line)
     if match:
         return match.group(1)
@@ -36,8 +51,9 @@ def get_quality(line):
         return None
 
 
+# TODO: still not working
+# Filters line pairs by quality
 def filter_by_quality(line_pairs, quality_patterns):
-    # Filters line pairs by quality
     filtered_pairs = []
     channel_dict = {}
     for pair in line_pairs:
@@ -57,56 +73,39 @@ def filter_by_quality(line_pairs, quality_patterns):
     return filtered_pairs
 
 
-def filter_m3u(
-    input_file: str,
-    output_file: str,
-    inc_patterns: list,
-    exc_patterns: list,
-    quality_patterns: list,
-    rename_patterns: list,
-):
-    with open(input_file, "r") as infile, open(output_file, "w") as outfile:
-        lines = infile.readlines()
-        outfile.write("#EXTM3U\n")
+# start of the script
 
-        line_pairs = [(lines[i], lines[i + 1]) for i in range(1, len(lines), 2)]
+with open(input_file, "r") as infile, open(output_file, "w") as outfile:
+    lines = infile.readlines()
+    outfile.write("#EXTM3U\n")
 
-        if filter_location:
-            line_pairs = [
-                pair
-                for pair in line_pairs
-                if any(pattern in pair[0] for pattern in inc_patterns)
-            ]
+    line_pairs = [(lines[i], lines[i + 1]) for i in range(1, len(lines), 2)]
 
-        if filter_quality:
-            line_pairs = filter_by_quality(line_pairs, quality_patterns)
+    if filter_location:
+        line_pairs = [
+            pair
+            for pair in line_pairs
+            if any(pattern in pair[0] for pattern in location_patterns)
+        ]
 
-        if filter_exclude:
-            line_pairs = [
-                pair
-                for pair in line_pairs
-                if not any(pattern in pair[0] for pattern in exc_patterns)
-            ]
+    if filter_quality:
+        line_pairs = filter_by_quality(line_pairs, quality_patterns)
 
-        if rename_channels:
-            line_pairs = [
-                (rename_channel(pair[0], rename_patterns), pair[1])
-                for pair in line_pairs
-            ]
+    if filter_exclude:
+        line_pairs = [
+            pair
+            for pair in line_pairs
+            if not any(pattern in pair[0] for pattern in exclude_patterns)
+        ]
 
-        if sort_channels:
-            line_pairs = sorted(line_pairs, key=lambda pair: get_tvg_name(pair[0]))
+    if rename_channels:
+        line_pairs = [
+            (rename_channel(pair[0], rename_patterns), pair[1]) for pair in line_pairs
+        ]
 
-        for pair in line_pairs:
-            for line in pair:
-                outfile.write(line)
+    if sort_channels:
+        line_pairs = sorted(line_pairs, key=lambda pair: get_tvg_name(pair[0]))
 
-
-filter_m3u(
-    "./" + input_file,
-    output_file,
-    location_patterns,
-    exclude_patterns,
-    quality_patterns,
-    rename_patterns,
-)
+    for pair in line_pairs:
+        for line in pair:
+            outfile.write(line)

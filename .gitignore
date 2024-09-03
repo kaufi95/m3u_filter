@@ -3,6 +3,8 @@
 
 input.m3u
 output.m3u
+v1*.m3u
+v2*.m3u
 
 ### Git ###
 # Created by git for backups. To disable backups in Git:
